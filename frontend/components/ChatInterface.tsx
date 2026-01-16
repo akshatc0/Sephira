@@ -34,12 +34,13 @@ export default function ChatInterface() {
     try {
       // Build conversation history from messages
       const conversationHistory: Array<{ user: string; assistant: string }> = [];
-      for (let i = 0; i < messages.length - 1; i += 2) {
+      for (let i = 0; i < messages.length - 1; i++) {
         if (messages[i].role === "user" && messages[i + 1]?.role === "assistant") {
           conversationHistory.push({
             user: messages[i].content,
             assistant: messages[i + 1].content,
           });
+          i++; // Skip the assistant message since we've processed it
         }
       }
 

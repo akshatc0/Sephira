@@ -93,7 +93,12 @@ class LLMService:
             )
             
             # Extract response text
+            if not response.choices or len(response.choices) == 0:
+                raise ValueError("OpenAI API returned no choices")
+            
             llm_response = response.choices[0].message.content
+            if llm_response is None:
+                raise ValueError("OpenAI API returned empty content")
             
             # Sanitize response
             sanitized_response = sanitize_response(llm_response)
@@ -173,7 +178,16 @@ class LLMService:
                     response_format={"type": "json_object"}  # Force JSON response
                 )
                 
-                result = json.loads(response.choices[0].message.content)
+                if not response.choices or len(response.choices) == 0:
+                    logger.warning("Chart detection API returned no choices")
+                    return {"needs_chart": True}
+                
+                content = response.choices[0].message.content
+                if content is None:
+                    logger.warning("Chart detection API returned empty content")
+                    return {"needs_chart": True}
+                
+                result = json.loads(content)
                 return result
                 
             except Exception as e:

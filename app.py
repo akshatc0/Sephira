@@ -454,7 +454,18 @@ async def query_data(request: DataQueryRequest):
             temperature=llm.temperature
         )
         
+        if not response.choices or len(response.choices) == 0:
+            raise HTTPException(
+                status_code=500,
+                detail="LLM API returned no response"
+            )
+        
         summary = response.choices[0].message.content
+        if summary is None:
+            raise HTTPException(
+                status_code=500,
+                detail="LLM API returned empty content"
+            )
         
         # Get actual data results (aggregated)
         results = {

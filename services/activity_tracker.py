@@ -197,7 +197,7 @@ class ActivityTracker:
         total_queries = sum(s["query_count"] for s in self.sessions.values())
         active_sessions = len([
             s for s in self.sessions.values()
-            if (datetime.now() - datetime.fromisoformat(s["last_activity"])).seconds < 3600
+            if (datetime.now() - datetime.fromisoformat(s["last_activity"])).total_seconds() < 3600
         ])
         
         return {
