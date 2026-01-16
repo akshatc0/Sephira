@@ -17,6 +17,7 @@ from services.data_service import DataService
 from services.guardrail_service import GuardrailService
 from services.chart_service import ChartService
 from services.llm_service import LLMService
+from services.activity_tracker import ActivityTracker
 from utils.validators import (
     validate_chart_request,
     validate_query_length,
@@ -52,6 +53,7 @@ data_service: Optional[DataService] = None
 guardrail_service: Optional[GuardrailService] = None
 chart_service: Optional[ChartService] = None
 llm_service: Optional[LLMService] = None
+activity_tracker: Optional[ActivityTracker] = None
 
 # In-memory session storage (use Redis/DB in production)
 sessions: Dict[str, Dict[str, Any]] = {}
@@ -90,6 +92,14 @@ def get_llm_service() -> LLMService:
             get_guardrail_service()
         )
     return llm_service
+
+
+def get_activity_tracker() -> ActivityTracker:
+    """Get or create ActivityTracker instance."""
+    global activity_tracker
+    if activity_tracker is None:
+        activity_tracker = ActivityTracker()
+    return activity_tracker
 
 
 # Request/Response Models
@@ -146,6 +156,25 @@ class HealthResponse(BaseModel):
     data_loaded: bool = Field(..., description="Whether data is loaded")
     countries_count: int = Field(..., description="Number of available countries")
     date_range: Dict[str, str] = Field(..., description="Available date range")
+
+
+class AnalyticsResponse(BaseModel):
+    """Analytics response model."""
+    daily_usage: Dict[str, int] = Field(..., description="Daily query counts")
+    top_countries: List[Dict[str, Any]] = Field(..., description="Most queried countries")
+    query_types: Dict[str, Any] = Field(..., description="Chart vs text query statistics")
+    blocked_queries: Dict[str, int] = Field(..., description="Blocked query counts by category")
+    session_statistics: Dict[str, Any] = Field(..., description="Session statistics")
+    generated_at: str = Field(..., description="Timestamp when analytics were generated")
+
+
+class UseCaseRequest(BaseModel):
+    """Use case submission request model."""
+    query: str = Field(..., description="User query")
+    response: str = Field(..., description="LLM response")
+    countries: List[str] = Field(..., description="Countries involved")
+    query_type: str = Field(..., description="Type of query (chart/text)")
+    notes: Optional[str] = Field(None, description="Notes about why this is interesting")
 
 
 # API Endpoints
@@ -257,6 +286,32 @@ async def chat(request: ChatRequest):
         if len(sessions[session_id]["history"]) > 20:
             sessions[session_id]["history"] = sessions[session_id]["history"][-20:]
         
+        # Track activity
+        try:
+            tracker = get_activity_tracker()
+            ds = get_data_service()
+            available_countries = ds.get_countries()
+            
+            # Extract countries from query
+            countries = tracker.extract_countries_from_query(sanitized_message, available_countries)
+            
+            # Determine query type (chart vs text)
+            chart_requested = result.get("chart_request") is not None
+            query_type = "chart" if chart_requested else "text"
+            
+            # Track the query
+            tracker.track_query(
+                session_id=session_id,
+                query=sanitized_message,
+                query_type=query_type,
+                countries=countries,
+                blocked=result.get("blocked", False),
+                block_category=result.get("block_category"),
+                chart_requested=chart_requested
+            )
+        except Exception as e:
+            logger.warning(f"Failed to track activity: {e}")
+        
         return ChatResponse(
             response=result["response"],
             chart_request=result.get("chart_request"),
@@ -314,6 +369,27 @@ async def generate_chart(request: ChartRequest):
             validated_request["chart_type"],
             validated_request["title"]
         )
+        
+        # Track chart generation activity
+        try:
+            tracker = get_activity_tracker()
+            # Extract session_id if provided in request, otherwise use unknown
+            session_id = "unknown"
+            if hasattr(request, "session_id") and request.session_id:
+                session_id = request.session_id
+            elif hasattr(request, "parameters") and request.parameters:
+                session_id = request.parameters.get("session_id", "unknown")
+            
+            tracker.track_query(
+                session_id=session_id,
+                query=f"Chart: {validated_request['title']}",
+                query_type="chart",
+                countries=validated_request["countries"],
+                blocked=False,
+                chart_requested=True
+            )
+        except Exception as e:
+            logger.warning(f"Failed to track chart activity: {e}")
         
         return ChartResponse(
             chart_url=chart_result["chart_url"],
@@ -386,6 +462,24 @@ async def query_data(request: DataQueryRequest):
             "data_summary": data_summary
         }
         
+        # Track activity
+        try:
+            tracker = get_activity_tracker()
+            ds = get_data_service()
+            available_countries = ds.get_countries()
+            countries = tracker.extract_countries_from_query(sanitized_query, available_countries)
+            
+            tracker.track_query(
+                session_id="query-data",  # Use a generic session for direct queries
+                query=sanitized_query,
+                query_type="text",
+                countries=countries,
+                blocked=False,
+                chart_requested=False
+            )
+        except Exception as e:
+            logger.warning(f"Failed to track query activity: {e}")
+        
         return DataQueryResponse(
             results=results,
             summary=summary
@@ -395,6 +489,40 @@ async def query_data(request: DataQueryRequest):
         raise
     except Exception as e:
         logger.error(f"Error in data query endpoint: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/analytics", response_model=AnalyticsResponse)
+async def get_analytics():
+    """Get comprehensive user activity analytics."""
+    try:
+        tracker = get_activity_tracker()
+        analytics = tracker.get_comprehensive_analytics()
+        
+        return AnalyticsResponse(**analytics)
+        
+    except Exception as e:
+        logger.error(f"Error getting analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/use-case")
+async def save_use_case(request: UseCaseRequest):
+    """Save an interesting use case for documentation."""
+    try:
+        tracker = get_activity_tracker()
+        tracker.save_use_case(
+            query=request.query,
+            response=request.response,
+            countries=request.countries,
+            query_type=request.query_type,
+            notes=request.notes
+        )
+        
+        return {"status": "success", "message": "Use case saved successfully"}
+        
+    except Exception as e:
+        logger.error(f"Error saving use case: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

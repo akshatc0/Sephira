@@ -79,14 +79,17 @@ class LLMService:
             # Prepare conversation for LLM
             messages = self._prepare_messages(user_query, conversation_history)
             
-            # Call OpenAI API with data exclusion settings
+            # Call OpenAI API
+            # IMPORTANT: To prevent OpenAI from using data for training:
+            # 1. Configure data exclusion at organization level in OpenAI dashboard
+            #    (Settings > Organization > Data usage policy > Disable training)
+            # 2. System prompts are already configured to limit data exposure
+            # 3. Only aggregated/summarized data is sent, not raw CSV data
+            # 4. Verify organization settings are configured correctly
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=self.temperature,
-                # Note: OpenAI's API may have different parameter names for data exclusion
-                # Check latest API documentation for exact parameter
-                # Some versions use: training_data_excluded=True or similar
+                temperature=self.temperature
             )
             
             # Extract response text
