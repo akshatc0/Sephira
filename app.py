@@ -152,8 +152,22 @@ class HealthResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup."""
+    # region agent log
+    try:
+        with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+            import json, time
+            f.write(json.dumps({"location":"app.py:210","message":"startup_event() called","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"B","data":{"api_key_length":len(Config.OPENAI_API_KEY)}})+'\n')
+    except: pass
+    # endregion
     try:
         Config.validate()
+        # region agent log
+        try:
+            with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+                import json, time
+                f.write(json.dumps({"location":"app.py:218","message":"Config.validate() succeeded in startup","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"B"})+'\n')
+        except: pass
+        # endregion
         logger.info("Configuration validated successfully")
         
         # Pre-load services
@@ -162,6 +176,13 @@ async def startup_event():
         logger.info("Services initialized successfully")
         
     except Exception as e:
+        # region agent log
+        try:
+            with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+                import json, time
+                f.write(json.dumps({"location":"app.py:231","message":"startup_event() error","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"B","data":{"error":str(e),"error_type":type(e).__name__}})+'\n')
+        except: pass
+        # endregion
         logger.error(f"Error during startup: {e}")
         raise
 

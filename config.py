@@ -7,6 +7,41 @@ import os
 from pathlib import Path
 from typing import Optional
 
+# region agent log
+try:
+    with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+        import json, time
+        f.write(json.dumps({"location":"config.py:10","message":"Config module import started","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"A","data":{"env_exists":os.path.exists('.env')}})+'\n')
+except: pass
+# endregion
+
+try:
+    from dotenv import load_dotenv
+    # region agent log
+    try:
+        with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+            import json, time
+            f.write(json.dumps({"location":"config.py:17","message":"dotenv imported successfully","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"A"})+'\n')
+    except: pass
+    # endregion
+    load_dotenv()
+    # region agent log
+    try:
+        with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+            import json, time
+            f.write(json.dumps({"location":"config.py:23","message":"load_dotenv() called","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"A","data":{"api_key_set":bool(os.getenv("OPENAI_API_KEY",""))}})+'\n')
+    except: pass
+    # endregion
+except ImportError:
+    # region agent log
+    try:
+        with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+            import json, time
+            f.write(json.dumps({"location":"config.py:28","message":"dotenv not available, .env file will not be loaded","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"A"})+'\n')
+    except: pass
+    # endregion
+    pass
+
 
 class Config:
     """Application configuration loaded from environment variables."""
@@ -54,18 +89,60 @@ class Config:
     @classmethod
     def validate(cls) -> bool:
         """Validate that required configuration is present."""
+        # region agent log
+        try:
+            with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+                import json, time
+                f.write(json.dumps({"location":"config.py:60","message":"Config.validate() called","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"B","data":{"api_key_length":len(cls.OPENAI_API_KEY),"csv_path":str(cls.DATA_CSV_PATH),"csv_exists":cls.DATA_CSV_PATH.exists()}})+'\n')
+        except: pass
+        # endregion
         if not cls.OPENAI_API_KEY:
+            # region agent log
+            try:
+                with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+                    import json, time
+                    f.write(json.dumps({"location":"config.py:67","message":"OPENAI_API_KEY validation failed - empty","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"A"})+'\n')
+            except: pass
+            # endregion
             raise ValueError("OPENAI_API_KEY environment variable is required")
         
         if not cls.DATA_CSV_PATH.exists():
+            # region agent log
+            try:
+                with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+                    import json, time
+                    f.write(json.dumps({"location":"config.py:74","message":"DATA_CSV_PATH validation failed - file not found","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"C","data":{"path":str(cls.DATA_CSV_PATH),"cwd":os.getcwd()}})+'\n')
+            except: pass
+            # endregion
             raise FileNotFoundError(f"Data file not found: {cls.DATA_CSV_PATH}")
         
         # Create chart output directory if it doesn't exist
         cls.CHART_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         
+        # region agent log
+        try:
+            with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+                import json, time
+                f.write(json.dumps({"location":"config.py:85","message":"Config.validate() completed successfully","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"B"})+'\n')
+        except: pass
+        # endregion
         return True
 
 
 # Global config instance
+# region agent log
+try:
+    with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+        import json, time
+        f.write(json.dumps({"location":"config.py:95","message":"Creating Config() instance","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"B","data":{"api_key_set":bool(os.getenv("OPENAI_API_KEY",""))}})+'\n')
+except: pass
+# endregion
 config = Config()
+# region agent log
+try:
+    with open('/Users/tanayj/Sephira/.cursor/debug.log', 'a') as f:
+        import json, time
+        f.write(json.dumps({"location":"config.py:102","message":"Config() instance created","timestamp":int(time.time()*1000),"sessionId":"debug-session","runId":"run1","hypothesisId":"B","data":{"api_key_length":len(config.OPENAI_API_KEY)}})+'\n')
+except: pass
+# endregion
 

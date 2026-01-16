@@ -152,9 +152,7 @@ def test_validators():
 
 def main():
     """Run all tests."""
-    print("=" * 50)
     print("Sephira LLM Backend - Basic Tests")
-    print("=" * 50)
     
     tests = [
         test_imports,
@@ -174,9 +172,7 @@ def main():
             traceback.print_exc()
             results.append(False)
     
-    print("\n" + "=" * 50)
-    print(f"Results: {sum(results)}/{len(results)} tests passed")
-    print("=" * 50)
+    print(f"\nResults: {sum(results)}/{len(results)} tests passed")
     
     return all(results)
 
